@@ -1,0 +1,220 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Recruiter { 
+  id                String            @id @default(cuid())
+  name              String
+  email             String            @unique
+  avatar            String?
+  password          String
+  company           String? 
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  //Relations
+  jobPostings       JobPosting[]
+}
+
+model JobPosting{
+
+  id                String             @id @default(cuid())
+  title             String
+  descripiton       String             @db.Text
+  requirements      String?            @db.Text
+  location          String?
+  salaryRange        String? 
+  experienceLevel   String?
+  department        String?
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  //Forign Keys
+  recruiterId       String
+
+  //Relations
+  recruiter         Recruiter @relation(fields: [recruiterId], references: [id], onDelete: Cascade) 
+
+  candidates        Candidate[]
+  questions         Question[]
+  interviews        Interview[]        
+}
+
+model Candidate{
+  
+  id                String              @id @default(cuid())
+  name              String
+  email             String              @unique
+  phoneNo           String
+  resume            String?             //url to resume file
+  experience        String? 
+  skills            String[]            //Array of skills
+  currentCompany    String?
+  currentRole       String?
+  expectedSalary    String?
+  noticePeriod      String?
+  location          String?
+  status            CandidateStatus       @default(APPLIED) 
+  appliedAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  //Foreign Keys
+  jobPostingId      String
+
+  //Relations
+  jobPosting        JobPosting             @relation(fields:[jobPostingId] , references:[id])
+  interviews        Interview[]
+}
+
+model Question{
+
+  id                 String                 @id @default(cuid())
+  questionText       String                 @db.Text
+  category           String? // Techinca, behavorial , hr , etc.
+  difficulty         Difficulty             @default(MEDIUM)
+  expectedAnswer     String?                @db.Text
+  keywords           String[] //keywords to looks for in answers
+  maxDuration        Int?  //Maximum time in seconds for answering
+  order              Int?  //order of the question in the interviews
+  isActive           Boolean                @default(true)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  //Foreign Keys
+  jobPostingId       String
+
+  //Relations
+  jobPosting        JobPosting              @relation(fields:[jobPostingId], references:[id] , onDelete:Cascade)
+  responses           InterviewResponse[]
+
+}
+
+model Interview{
+  id                  String                  @id @default(cuid())
+  status              InterviewStatus         @default(SCHEDULED)
+  scheduedAt          DateTime?
+  startedAt           DateTime?
+  completedAt         DateTime?
+  duration            Int?
+  overallScore        Float?                 //Overall interview score(0-100)
+  overallRating       Rating?         //Overal overallRating
+  notes               String?               @db.Text
+  calRecordingUrl     String?               //URL to call calRecordingUrl
+  transscript         String?               @db.Text
+  feedback            String?               @db.Text
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  //Foreign Keys
+
+  candidateId         String
+  jobPostingId        String
+
+  //Relations
+  candidate         Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  jobPosting        JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  responses         InterviewResponse[]
+}
+
+model InterviewResponse{
+
+  id                    String              @id @default(cuid())
+  answer                String              @db.Text
+  duration              Int?                //Time taken to answerin seconds
+  score                 Float?              //Score for this specific answer(0-100)
+  overallRating         Rating? // Rating for this answer
+  feedback              String?             @db.Text
+  keywords              String[] // keywords found in the answer
+  sentiment             String? // positive, negative , neutral
+  confidence            Float? //AI confiedence in scoring(0-1)
+  createdAt             DateTime              @default(now()) 
+  updatedAt             DateTime              @updatedAt
+
+  //Foreign Keys
+  interviewId           String
+  questionId            String
+
+  //Relations
+  interview             Interview             @relation(fields:[interviewId] , references:[id], onDelete:Cascade)
+  question              Question              @relation(fields:[questionId], references:[id] , onDelete:Cascade)
+
+
+  @@unique([interviewId , questionId])// one response per question per interview
+}
+
+model CallLog{
+  id                    String                @id @default(cuid())
+  phoneNumber           String
+  callId                String?               @unique//External cal service ID
+  status                CallStatus            @default(INITIATED)
+  startTime             DateTime? 
+  endTime               DateTime?
+  duration              Int?   //Duration in seconds
+  recordingUrl          String?
+  cost                  Float? //cost of the call
+  errorMessage          String? 
+  retryCount            Int                    @default(0)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+}
+
+enum CandidateStatus {
+  APPLIED
+  SCREENING
+  INTERVIEW_SCHEDULED
+  INTERVIEW_COMPLETED
+  SELECTED
+  REJECTED
+  ON_HOLD
+  WITHDRAWN
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  FAILED
+  NO_SHOW
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum Rating {
+  EXCELLENT     // 5
+  GOOD         // 4
+  AVERAGE      // 3
+  BELOW_AVERAGE // 2
+  POOR         // 1
+}
+
+enum CallStatus {
+  INITIATED
+  RINGING
+  ANSWERED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  BUSY
+  NO_ANSWER
+  CANCELLED
+}
+
+
