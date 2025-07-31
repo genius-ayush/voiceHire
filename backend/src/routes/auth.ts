@@ -1,11 +1,10 @@
-import { Router } from "express";
+import { Request, Response, Router } from "express";
+import { register } from "../controllers/authControllers";
 
 const router = Router() ; 
 
 
-router.post("register" , (req , res)=>{
-    
-})
+router.post("register" , register)
 
 
 router.post("/login" , (req , res)=>{
