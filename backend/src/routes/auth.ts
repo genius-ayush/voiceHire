@@ -1,5 +1,6 @@
 import { Request, Response, Router } from "express";
-import { register } from "../controllers/authControllers";
+import { login, me, register } from "../controllers/authControllers";
+import { authenticateJwt } from "../middlewares";
 
 const router = Router() ; 
 
@@ -7,13 +8,9 @@ const router = Router() ;
 router.post("register" , register)
 
 
-router.post("/login" , (req , res)=>{
-
-})
+router.post("/login" , login)
 
 
-router.get("/me" , (req , res)=>{
-
-})
+router.get("/me", authenticateJwt , me)
 
 export default router ; 
