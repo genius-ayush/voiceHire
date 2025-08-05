@@ -5,7 +5,7 @@ import { authenticateJwt } from "../middlewares";
 const router = Router() ; 
 
 
-router.post("register" , register)
+router.post("/register" , register)
 
 
 router.post("/login" , login)
