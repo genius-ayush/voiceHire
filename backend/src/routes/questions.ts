@@ -4,7 +4,7 @@ import { addQuestion, deleteQuestion, getQuestions, updateQuestion } from "../co
 
 const router = Router() ; 
 
-router.post("jobs/:/jobId/questions" , authenticateJwt , addQuestion) ; 
+router.post("jobs/:jobId/questions" , authenticateJwt , addQuestion) ; 
 
 router.get("/jobs/:jobId/questions" , authenticateJwt , getQuestions) ; 
 

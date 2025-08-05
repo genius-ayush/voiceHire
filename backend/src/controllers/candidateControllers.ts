@@ -22,8 +22,7 @@ export const addCandidate = async (req:Request , res:Response)=>{
 }
 
 export const listCandidates = async(req:Request , res:Response)=>{
-    const jobId = req.params ;
-
+    const {jobId} = req.params ;
     try{
         const candidates = await prisma.candidate.findMany({
             where:{jobPostingId:jobId} , 
@@ -57,6 +56,8 @@ export const updateCandidate = async(req:Request , res:Response)=>{
             where:{id:req.params.id}, 
             data: req.body,
         })
+
+        return res.json(candidate);
     }catch(err){
         return res.status(500).json({message:'Error updating candidate' , err})
     }

@@ -4,7 +4,7 @@ import { addCandidate, deleteCandidate, getCandidate, listCandidates, updateCand
 
 const router = Router() ; 
 
-router.post('jobs/:jobId/candidates' , authenticateJwt , addCandidate) ; 
+router.post('/jobs/:jobId/candidates' , authenticateJwt , addCandidate) ; 
 
 router.get('/jobs/:jobId/candidates' , authenticateJwt , listCandidates) ;
 

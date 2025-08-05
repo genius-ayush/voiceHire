@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 
 export const register = async (req: Request, res: Response) => {
 
-    const { name, email, password, company } = req.body;
+    const { name, email, password } = req.body;
     try {
 
         const existingRecruiter = await prisma.recruiter.findUnique({ where: {email} });
@@ -14,7 +14,7 @@ export const register = async (req: Request, res: Response) => {
             return res.status(400).json({ message: 'Recruiter already exist' });
         }
         
-        const newRecruiter = await prisma.recruiter.create({ data:{ name, email, password , company}});
+        const newRecruiter = await prisma.recruiter.create({ data:{ name, email, password}});
         const token = jwt.sign({id : newRecruiter.id} , SECRET , { expiresIn: '1h' })
         return res.status(201).json({token , newRecruiter})
 

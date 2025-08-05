@@ -1,1 +1,12 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const middlewares_1 = require("../middlewares");
+const candidateControllers_1 = require("../controllers/candidateControllers");
+const router = (0, express_1.Router)();
+router.post('/jobs/:jobId/candidates', middlewares_1.authenticateJwt, candidateControllers_1.addCandidate);
+router.get('/jobs/:jobId/candidates', middlewares_1.authenticateJwt, candidateControllers_1.listCandidates);
+router.get('/candidates/:id', middlewares_1.authenticateJwt, candidateControllers_1.getCandidate);
+router.put('/candidate/:id', middlewares_1.authenticateJwt, candidateControllers_1.updateCandidate);
+router.delete('/candidate/:id', middlewares_1.authenticateJwt, candidateControllers_1.deleteCandidate);
+exports.default = router;

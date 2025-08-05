@@ -18,13 +18,13 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const middlewares_1 = require("../middlewares");
 const prisma = new client_1.PrismaClient();
 const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { name, email, password, company } = req.body;
+    const { name, email, password } = req.body;
     try {
         const existingRecruiter = yield prisma.recruiter.findUnique({ where: { email } });
         if (existingRecruiter) {
             return res.status(400).json({ message: 'Recruiter already exist' });
         }
-        const newRecruiter = yield prisma.recruiter.create({ data: { name, email, password, company } });
+        const newRecruiter = yield prisma.recruiter.create({ data: { name, email, password } });
         const token = jsonwebtoken_1.default.sign({ id: newRecruiter.id }, middlewares_1.SECRET, { expiresIn: '1h' });
         return res.status(201).json({ token, newRecruiter });
     }
