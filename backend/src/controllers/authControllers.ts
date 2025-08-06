@@ -16,7 +16,7 @@ export const register = async (req: Request, res: Response) => {
         
         const newRecruiter = await prisma.recruiter.create({ data:{ name, email, password}});
         const token = jwt.sign({id : newRecruiter.id} , SECRET , { expiresIn: '1h' })
-        return res.status(201).json({token , newRecruiter})
+        return res.status(201).json({token , id : newRecruiter.id})
 
     } catch (err) {
         res.status(500).json({ error: 'Registeration failed' , err} );
@@ -26,20 +26,21 @@ export const register = async (req: Request, res: Response) => {
 export const login = async(req: Request , res : Response)=>{
 
     const {email , password} = req.body ; 
-
+    console.log(email) ; 
+        console.log(password) ; 
     try{
 
-        const recruiter = await prisma.recruiter.findUnique({where:{email , password}})
-
+        const recruiter = await prisma.recruiter.findFirst({where:{email , password}})
+        console.log(recruiter) ; 
 
         if(recruiter){
             const token = jwt.sign({id: recruiter.id} , SECRET , {expiresIn:'1h'});  
-            res.json({message: 'Logged in Successfully' , token , recruiterId: recruiter.id}) ; 
+            res.json({message: 'Logged in Successfully' , token , id: recruiter.id}) ; 
         }else{
             res.status(403).json({message: 'Invalid email or password'}) ;
         }
     }catch(err){
-        res.status(500).json({error: 'Login failed'})
+        res.status(500).json({error: 'Login failed' , err})
     } 
 }
 

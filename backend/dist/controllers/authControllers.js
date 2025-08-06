@@ -26,7 +26,7 @@ const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         }
         const newRecruiter = yield prisma.recruiter.create({ data: { name, email, password } });
         const token = jsonwebtoken_1.default.sign({ id: newRecruiter.id }, middlewares_1.SECRET, { expiresIn: '1h' });
-        return res.status(201).json({ token, newRecruiter });
+        return res.status(201).json({ token, id: newRecruiter.id });
     }
     catch (err) {
         res.status(500).json({ error: 'Registeration failed', err });
@@ -35,18 +35,21 @@ const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 exports.register = register;
 const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = req.body;
+    console.log(email);
+    console.log(password);
     try {
-        const recruiter = yield prisma.recruiter.findUnique({ where: { email, password } });
+        const recruiter = yield prisma.recruiter.findFirst({ where: { email, password } });
+        console.log(recruiter);
         if (recruiter) {
             const token = jsonwebtoken_1.default.sign({ id: recruiter.id }, middlewares_1.SECRET, { expiresIn: '1h' });
-            res.json({ message: 'Logged in Successfully', token, recruiterId: recruiter.id });
+            res.json({ message: 'Logged in Successfully', token, id: recruiter.id });
         }
         else {
             res.status(403).json({ message: 'Invalid email or password' });
         }
     }
     catch (err) {
-        res.status(500).json({ error: 'Login failed' });
+        res.status(500).json({ error: 'Login failed', err });
     }
 });
 exports.login = login;
