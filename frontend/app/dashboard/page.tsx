@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Briefcase, Users, MessageSquare, TrendingUp, Plus, Calendar, Clock } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import axios from "axios"
+
 
 interface DashboardStats {
   totalJobs: number
@@ -36,53 +39,75 @@ export default function DashboardPage() {
   })
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const router = useRouter(); 
 
   useEffect(() => {
     const fetchDashboardData = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      setStats({
-        totalJobs: 8,
-        totalQuestions: 32,
-        totalCandidates: 47,
-        activeInterviews: 3,
-        completedInterviews: 12,
-        avgScore: 84,
-      })
+      const token = localStorage.getItem("token")
+      if (!token) {
+        router.push("/auth/login")
+        return
+      }
 
-      setRecentActivity([
-        {
-          id: "1",
-          type: "interview_completed",
-          title: "Sarah Johnson - Senior Frontend Developer",
-          description: "Interview completed with score of 87%",
-          timestamp: "2 hours ago",
-          score: 87,
-        },
-        {
-          id: "2",
-          type: "candidate_applied",
-          title: "New candidate applied",
-          description: "Michael Chen applied for Product Manager position",
-          timestamp: "4 hours ago",
-        },
-        {
-          id: "3",
-          type: "job_created",
-          title: "New job posted",
-          description: "UX Designer position created",
-          timestamp: "1 day ago",
-        },
-        {
-          id: "4",
-          type: "interview_completed",
-          title: "Emily Rodriguez - UX Designer",
-          description: "Interview completed with score of 92%",
-          timestamp: "2 days ago",
-          score: 92,
-        },
-      ])
+      try{
+        const res = await axios.get("http://localhost:5000/recruiters/stats", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
 
+        })
+      if(res.data?.stats){
+        setStats(res.data.stats)
+      }
+      }catch(err){
+        console.error("Error fetching user:" , err) ; 
+      }
+
+      
+
+      // setStats({
+      //   totalJobs: 8,
+      //   totalQuestions: 32,
+      //   totalCandidates: 47,
+      //   activeInterviews: 3,
+      //   completedInterviews: 12,
+      //   avgScore: 84,
+      // })
+
+      // setRecentActivity([
+      //   {
+      //     id: "1",
+      //     type: "interview_completed",
+      //     title: "Sarah Johnson - Senior Frontend Developer",
+      //     description: "Interview completed with score of 87%",
+      //     timestamp: "2 hours ago",
+      //     score: 87,
+      //   },
+      //   {
+      //     id: "2",
+      //     type: "candidate_applied",
+      //     title: "New candidate applied",
+      //     description: "Michael Chen applied for Product Manager position",
+      //     timestamp: "4 hours ago",
+      //   },
+      //   {
+      //     id: "3",
+      //     type: "job_created",
+      //     title: "New job posted",
+      //     description: "UX Designer position created",
+      //     timestamp: "1 day ago",
+      //   },
+      //   {
+      //     id: "4",
+      //     type: "interview_completed",
+      //     title: "Emily Rodriguez - UX Designer",
+      //     description: "Interview completed with score of 92%",
+      //     timestamp: "2 days ago",
+      //     score: 92,
+      //   },
+      // ])
+      console.log(stats) ; 
       setIsLoading(false)
     }
 
@@ -113,15 +138,7 @@ export default function DashboardPage() {
       icon: MessageSquare,
       color: "text-purple-600",
       bgColor: "bg-purple-100 dark:bg-purple-900",
-    },
-    {
-      title: "Avg Interview Score",
-      value: `${stats.avgScore}%`,
-      description: "Overall performance",
-      icon: TrendingUp,
-      color: "text-orange-600",
-      bgColor: "bg-orange-100 dark:bg-orange-900",
-    },
+    }
   ]
 
   const getActivityIcon = (type: string) => {
@@ -187,7 +204,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {statCards.map((stat, index) => (
           <Card key={index} className="hover:shadow-md transition-shadow">
             <CardContent className="p-6">
@@ -286,7 +303,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Interview Pipeline */}
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>Interview Pipeline</CardTitle>
           <CardDescription>Current status of ongoing interviews</CardDescription>
@@ -310,7 +327,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   )
 }

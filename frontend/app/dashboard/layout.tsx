@@ -1,38 +1,64 @@
 "use client"
 
-import type React from "react"
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import React, { useEffect, useState } from "react"
+import { useRouter, usePathname } from "next/navigation"
+import Link from "next/link"
+import axios from "axios"
+import {
+  Brain, LayoutDashboard, Briefcase, Plus, LogOut, Menu, Users, BarChart3,
+} from "lucide-react"
+
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Brain, LayoutDashboard, Briefcase, Plus, LogOut, Menu, Users, BarChart3 } from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null)
+  const [user, setUser] = useState<any>(null) ; 
+  const [stats , setStats] = useState<any>(null) ; 
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
+  // Fetch authenticated user
   useEffect(() => {
-    const userData = localStorage.getItem("recruiterId")
-    if (userData) {
-    //   setUser(JSON.parse(userData))
-    } else {
-      router.push("/auth/login")
+    const fetchUser = async () => {
+      const token = localStorage.getItem("token")
+      if (!token) {
+        router.push("/auth/login")
+        return
+      }
+
+      try {
+        const res = await axios.get("http://localhost:5000/auth/me", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (res.data?.recruiter) {
+          setUser(res.data.recruiter)
+          setStats(res.data.stats) ; 
+        } else {
+          router.push("/auth/login")
+        }
+      } catch (err) {
+        console.error("Error fetching user:", err)
+        router.push("/auth/login")
+      }
     }
+
+    fetchUser()
   }, [router])
 
   const handleLogout = () => {
-    localStorage.removeItem("user")
-    router.push("/")
+    localStorage.removeItem("token")
+    localStorage.removeItem("recruiterId"); 
+    router.push("/auth/login")
   }
 
   const navigation = [
@@ -44,15 +70,15 @@ export default function DashboardLayout({
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin h-8 w-8 rounded-full border-2 border-primary border-t-transparent" />
       </div>
     )
   }
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      {/* Logo - Always visible */}
+      {/* Logo */}
       <div className="flex items-center justify-center h-16 px-4 border-b border-border bg-card">
         <Link href="/dashboard" className="flex items-center space-x-2">
           <Brain className="h-8 w-8 text-primary" />
@@ -83,7 +109,7 @@ export default function DashboardLayout({
         })}
       </nav>
 
-      {/* Create Job Button */}
+      {/* Create Job */}
       <div className="px-4 pb-4">
         <Link href="/dashboard/jobs/create">
           <Button className="w-full" onClick={() => setSidebarOpen(false)}>
@@ -99,8 +125,8 @@ export default function DashboardLayout({
           <Avatar className="h-10 w-10">
             <AvatarFallback className="bg-primary text-primary-foreground text-sm">
               {user.name
-                .split(" ")
-                .map((n) => n[0])
+                ?.split(" ")
+                .map((n: string) => n[0])
                 .join("")}
             </AvatarFallback>
           </Avatar>
@@ -135,12 +161,10 @@ export default function DashboardLayout({
         </SheetContent>
       </Sheet>
 
-      {/* Main Content */}
+      {/* Main Layout */}
       <div className="lg:pl-72">
-        {/* Top Header */}
         <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 lg:px-6">
           <div className="flex items-center space-x-4">
-            {/* Mobile menu button */}
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="sm" className="lg:hidden">
@@ -149,25 +173,21 @@ export default function DashboardLayout({
               </SheetTrigger>
             </Sheet>
 
-            {/* Mobile Logo */}
             <Link href="/dashboard" className="flex items-center space-x-2 lg:hidden">
               <Brain className="h-6 w-6 text-primary" />
               <span className="text-lg font-bold text-foreground">VoiceHireAI</span>
             </Link>
           </div>
 
-          {/* Right side - could add notifications, search, etc. */}
           <div className="flex items-center space-x-4">
-            <div className="hidden sm:block">
-              <p className="text-sm text-muted-foreground">
-                Welcome back, <span className="font-medium text-foreground">{user.name.split(" ")[0]}</span>
-              </p>
+            <div className="hidden sm:block text-sm text-muted-foreground">
+              Welcome back, <span className="font-medium text-foreground">{user.name?.split(" ")[0]}</span>
             </div>
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1">{children}</main>
+        {/* Children */}
+        <main className="flex-1"> {children}</main>
       </div>
     </div>
   )

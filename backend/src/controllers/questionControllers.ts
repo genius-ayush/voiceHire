@@ -3,10 +3,11 @@ import { Request, Response } from "express";
 const prisma = new PrismaClient() ; 
 
 export const addQuestion = async (req: Request, res: Response) => {
-
+    console.log("reached here or not") ; 
     try {
 
         const { jobId } = req.params;
+        console.log(jobId) ; 
         const { questionText, category, difficulty, expectedAnswer, keywords, maxDuration, order } = req.body;
 
         const question = await prisma.question.create({

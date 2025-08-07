@@ -8,6 +8,7 @@ exports.SECRET = 'SECr3t';
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const authenticateJwt = (req, res, next) => {
     const authHeader = req.headers.authorization;
+    console.log(authHeader);
     if (authHeader) {
         const token = authHeader.split(" ")[1];
         jsonwebtoken_1.default.verify(token, exports.SECRET, (err, payload) => {
@@ -20,6 +21,7 @@ const authenticateJwt = (req, res, next) => {
             if (typeof payload == 'string') {
                 return res.sendStatus(403);
             }
+            // console.log(payload.id); 
             req.headers['recruiterId'] = payload.id;
             next();
         });

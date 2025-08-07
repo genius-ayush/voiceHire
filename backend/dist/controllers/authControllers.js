@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.me = exports.login = exports.register = void 0;
+exports.stats = exports.me = exports.login = exports.register = void 0;
 const client_1 = require("@prisma/client");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const middlewares_1 = require("../middlewares");
@@ -61,7 +61,7 @@ const me = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const recruiter = yield prisma.recruiter.findUnique({ where: { id: recruiterId } });
         if (recruiter) {
-            res.json({ recruiter: recruiter.name, email: recruiter.email, recruiterId });
+            res.json({ recruiter });
         }
         else {
             res.status(403).json({ message: 'recruter not loggedIn' });
@@ -72,3 +72,60 @@ const me = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.me = me;
+const stats = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const recruiterId = req.headers["recruiterId"];
+    // console.log(recruiterId); 
+    if (typeof recruiterId !== "string") {
+        return res.status(400).json({ message: "Invalid recruiter ID" });
+    }
+    try {
+        // Get recruiter info + counts + recent interviews
+        const recruiter = yield prisma.recruiter.findUnique({
+            where: { id: recruiterId },
+            include: {
+                jobPostings: {
+                    include: {
+                        candidates: true,
+                        questions: true,
+                        interviews: {
+                            orderBy: { createdAt: "desc" },
+                            take: 5,
+                        },
+                    },
+                },
+            },
+        });
+        if (!recruiter) {
+            return res.status(403).json({ message: "Recruiter not logged in" });
+        }
+        // Calculate counts
+        const totalJobs = recruiter.jobPostings.length;
+        const totalCandidates = recruiter.jobPostings.reduce((sum, job) => sum + job.candidates.length, 0);
+        const totalQuestions = recruiter.jobPostings.reduce((sum, job) => sum + job.questions.length, 0);
+        const recentInterviews = recruiter.jobPostings
+            .flatMap((job) => job.interviews)
+            .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+            .slice(0, 5); // Limit to 5 recent interviews
+        return res.json({
+            recruiter: {
+                id: recruiter.id,
+                name: recruiter.name,
+                email: recruiter.email,
+                avatar: recruiter.avatar,
+                company: recruiter.company,
+                createdAt: recruiter.createdAt,
+            },
+            stats: {
+                totalJobs,
+                totalCandidates,
+                totalQuestions,
+                recentInterviews,
+            },
+        });
+    }
+    catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Something went wrong" });
+    }
+});
+exports.stats = stats;

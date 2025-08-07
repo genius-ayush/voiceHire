@@ -13,8 +13,10 @@ exports.deleteQuestion = exports.updateQuestion = exports.getQuestions = exports
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 const addQuestion = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("reached here or not");
     try {
         const { jobId } = req.params;
+        console.log(jobId);
         const { questionText, category, difficulty, expectedAnswer, keywords, maxDuration, order } = req.body;
         const question = yield prisma.question.create({
             data: {
