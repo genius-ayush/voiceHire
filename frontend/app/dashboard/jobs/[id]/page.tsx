@@ -41,13 +41,14 @@ import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { z } from "zod"
 import type { JobPosting, Candidate, Question, CandidateStatus, Difficulty } from "@/lib/types"
+import axios from "axios"
 
 const candidateSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   phoneNo: z.string().min(10, "Phone number must be at least 10 digits"),
   experience: z.string().optional(),
-  skills: z.string().min(1, "Skills are required"),
+  skills: z.array(z.string().min(1)).min(1, "At least one skill is required"),
   currentCompany: z.string().optional(),
   currentRole: z.string().optional(),
   expectedSalary: z.string().optional(),
@@ -55,14 +56,16 @@ const candidateSchema = z.object({
   location: z.string().optional(),
 })
 
+
 const questionSchema = z.object({
   questionText: z.string().min(10, "Question must be at least 10 characters"),
   category: z.string().min(1, "Category is required"),
   difficulty: z.string().min(1, "Difficulty is required"),
-  keywords: z.string().min(1, "Keywords are required"),
+  keywords: z.array(z.string().min(1)).min(1, "At least one keyword is required"),
   maxDuration: z.number().min(30, "Duration must be at least 30 seconds"),
   expectedAnswer: z.string().min(10, "Expected answer must be at least 10 characters"),
-})
+});
+
 
 export default function JobDetailsPage() {
   const [job, setJob] = useState<JobPosting | null>(null)
@@ -76,118 +79,47 @@ export default function JobDetailsPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const params = useParams()
   const router = useRouter()
-
+  const jobId = useParams() ;
   useEffect(() => {
     const fetchJobDetails = async () => {
       try {
-        // Simulate API calls
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        // API calls
+        
+        const token = localStorage.getItem("token") ; 
 
-        // Mock job data
-        const mockJob: JobPosting = {
-          id: params.id as string,
-          title: "Senior Frontend Developer",
-          description:
-            "We are looking for an experienced Frontend Developer to join our team. You will be responsible for building user-facing features using React, TypeScript, and modern web technologies.",
-          requirements:
-            "• 5+ years of experience with React and TypeScript\n• Strong understanding of modern JavaScript\n• Experience with state management libraries\n• Knowledge of testing frameworks",
-          location: "Remote",
-          salaryRange: "$90,000 - $130,000",
-          experienceLevel: "Senior",
-          department: "Engineering",
-          isActive: true,
-          createdAt: "2024-01-15T10:00:00Z",
-          updatedAt: "2024-01-15T10:00:00Z",
-          recruiterId: "recruiter-1",
-          recruiter: {} as any,
-          candidates: [],
-          questions: [],
-          interviews: [],
+        if (!token) {
+            console.error('No token found');
+            return;
+          } 
+        
+        setIsLoading(true) ; 
+           
+        try{
+            
+            const job_res = await axios.get(`http://localhost:5000/jobPostings/jobs/${jobId.id}`, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              })
+
+            const candi_res = await axios.get(`http://localhost:5000/candidates/jobs/${jobId.id}/candidates`, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              })
+
+            const ques_res = await axios.get(`http://localhost:5000/questions/jobs/${jobId.id}/questions`, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              })
+
+            setJob(job_res.data)
+            setCandidates(candi_res.data)
+            setQuestions(ques_res.data.questions)
+        }catch(error){
+            console.error('Error fetching data' , error) ; 
         }
-
-        // Mock candidates
-        const mockCandidates: Candidate[] = [
-          {
-            id: "1",
-            name: "Sarah Johnson",
-            email: "sarah.johnson@email.com",
-            phoneNo: "+1234567890",
-            experience: "6 years",
-            skills: ["React", "TypeScript", "Node.js", "GraphQL"],
-            currentCompany: "Tech Corp",
-            currentRole: "Frontend Developer",
-            expectedSalary: "$120,000",
-            noticePeriod: "2 weeks",
-            location: "San Francisco, CA",
-            status: "APPLIED" as CandidateStatus,
-            appliedAt: "2024-01-20T10:00:00Z",
-            updatedAt: "2024-01-20T10:00:00Z",
-            jobPostingId: params.id as string,
-            jobPosting: mockJob,
-            interviews: [],
-          },
-          {
-            id: "2",
-            name: "Michael Chen",
-            email: "michael.chen@email.com",
-            phoneNo: "+1234567891",
-            experience: "4 years",
-            skills: ["React", "Vue.js", "Python", "AWS"],
-            currentCompany: "StartupXYZ",
-            currentRole: "Full Stack Developer",
-            expectedSalary: "$110,000",
-            noticePeriod: "1 month",
-            location: "Remote",
-            status: "SCREENING" as CandidateStatus,
-            appliedAt: "2024-01-19T14:30:00Z",
-            updatedAt: "2024-01-21T09:15:00Z",
-            jobPostingId: params.id as string,
-            jobPosting: mockJob,
-            interviews: [],
-          },
-        ]
-
-        // Mock questions
-        const mockQuestions: Question[] = [
-          {
-            id: "q1",
-            questionText: "What is the difference between let, const, and var in JavaScript?",
-            category: "Technical",
-            difficulty: "MEDIUM" as Difficulty,
-            expectedAnswer:
-              "let and const are block-scoped, while var is function-scoped. const cannot be reassigned after declaration.",
-            keywords: ["javascript", "variables", "scope"],
-            maxDuration: 180,
-            order: 1,
-            isActive: true,
-            createdAt: "2024-01-15T10:00:00Z",
-            updatedAt: "2024-01-15T10:00:00Z",
-            jobPostingId: params.id as string,
-            jobPosting: mockJob,
-            responses: [],
-          },
-          {
-            id: "q2",
-            questionText: "Explain the concept of closures in JavaScript.",
-            category: "Technical",
-            difficulty: "HARD" as Difficulty,
-            expectedAnswer:
-              "A closure is a function that has access to variables in its outer (enclosing) scope even after the outer function has returned.",
-            keywords: ["javascript", "closures", "scope"],
-            maxDuration: 240,
-            order: 2,
-            isActive: true,
-            createdAt: "2024-01-15T10:00:00Z",
-            updatedAt: "2024-01-15T10:00:00Z",
-            jobPostingId: params.id as string,
-            jobPosting: mockJob,
-            responses: [],
-          },
-        ]
-
-        setJob(mockJob)
-        setCandidates(mockCandidates)
-        setQuestions(mockQuestions)
       } catch (error) {
         console.error("Failed to fetch job details:", error)
       } finally {
@@ -209,7 +141,10 @@ export default function JobDetailsPage() {
       email: formData.get("email") as string,
       phoneNo: formData.get("phoneNo") as string,
       experience: formData.get("experience") as string,
-      skills: formData.get("skills") as string,
+      skills: (formData.get("skills") as string)
+      .split(',')
+      .map(k => k.trim())
+      .filter(k => k.length > 0),
       currentCompany: formData.get("currentCompany") as string,
       currentRole: formData.get("currentRole") as string,
       expectedSalary: formData.get("expectedSalary") as string,
@@ -220,21 +155,20 @@ export default function JobDetailsPage() {
     try {
       const result = candidateSchema.parse(data)
 
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      console.log(result) ; 
+      
+      const token = localStorage.getItem("token"); 
 
-      const newCandidate: Candidate = {
-        id: Date.now().toString(),
-        ...result,
-        skills: result.skills.split(",").map((s) => s.trim()),
-        status: "APPLIED" as CandidateStatus,
-        appliedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        jobPostingId: params.id as string,
-        jobPosting: job!,
-        interviews: [],
+      if(!token){
+        throw new Error("Authenticate token not found")
       }
 
-      setCandidates([...candidates, newCandidate])
+      const response = await axios.post(`http://localhost:5000/candidates/jobs/${jobId.id}/candidates` , result , {headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },})
+
+      setCandidates([...candidates, response.data])
       setCandidateDialogOpen(false)
       e.currentTarget.reset()
     } catch (error) {
@@ -258,35 +192,41 @@ export default function JobDetailsPage() {
     setErrors({})
 
     const formData = new FormData(e.currentTarget)
+
+    
     const data = {
       questionText: formData.get("questionText") as string,
       category: formData.get("category") as string,
       difficulty: formData.get("difficulty") as string,
-      keywords: formData.get("keywords") as string,
+      keywords: (formData.get("keywords") as string)
+        .split(',')
+        .map(k => k.trim())
+        .filter(k => k.length > 0),
       maxDuration: Number.parseInt(formData.get("maxDuration") as string),
       expectedAnswer: formData.get("expectedAnswer") as string,
     }
+    
+
+    
 
     try {
       const result = questionSchema.parse(data)
+      console.log(result) ; 
 
-      await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const newQuestion: Question = {
-        id: Date.now().toString(),
-        ...result,
-        difficulty: result.difficulty as Difficulty,
-        keywords: result.keywords.split(",").map((k) => k.trim()),
-        order: questions.length + 1,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        jobPostingId: params.id as string,
-        jobPosting: job!,
-        responses: [],
+      const token = localStorage.getItem("token") ; 
+
+      if(!token){
+        throw new Error("Authenticate token not found")
       }
 
-      setQuestions([...questions, newQuestion])
+      const response = await axios.post(`http://localhost:5000/questions/jobs/${jobId.id}/questions` , result , {headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },})
+      
+      
+      setQuestions([...questions, response.data.question])
       setQuestionDialogOpen(false)
       e.currentTarget.reset()
     } catch (error) {

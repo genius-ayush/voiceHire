@@ -26,8 +26,6 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
 
     const { email, password } = req.body;
-    console.log(email);
-    console.log(password);
     try {
 
         const recruiter = await prisma.recruiter.findFirst({ where: { email, password } })
