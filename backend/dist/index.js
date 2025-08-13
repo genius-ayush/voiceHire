@@ -11,6 +11,7 @@ const job_postings_1 = __importDefault(require("./routes/job-postings"));
 const candidates_1 = __importDefault(require("./routes/candidates"));
 const questions_1 = __importDefault(require("./routes/questions"));
 const recruiters_1 = __importDefault(require("./routes/recruiters"));
+const interviews_1 = __importDefault(require("./routes/interviews"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const port = 5000;
@@ -24,6 +25,7 @@ app.use('/jobPostings', job_postings_1.default);
 app.use('/candidates', candidates_1.default);
 app.use('/questions', questions_1.default);
 app.use('/recruiters', recruiters_1.default);
+app.use('/interviews', interviews_1.default);
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`);
 });

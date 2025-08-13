@@ -35,8 +35,6 @@ const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 exports.register = register;
 const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = req.body;
-    console.log(email);
-    console.log(password);
     try {
         const recruiter = yield prisma.recruiter.findFirst({ where: { email, password } });
         console.log(recruiter);

@@ -34,6 +34,9 @@ export default function InterviewPage() {
     isRecording: false,
     responses: [],
   })
+
+  const[job , setJob] = useState(null) ; 
+  const[interviewer , setInterviewer] = useState(null) ; 
   const [isLoading, setIsLoading] = useState(true)
   const params = useParams()
   const router = useRouter()
@@ -52,6 +55,12 @@ export default function InterviewPage() {
             Authorization: `Bearer ${token}`,
           },
         })
+        
+        const job_info = await axios.get(`http://localhost:5000/jobPostings/jobs/${jobId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
 
         const questions = await axios.get(`http://localhost:5000/questions/jobs/${jobId}/questions`, {
           headers: {
@@ -65,88 +74,17 @@ export default function InterviewPage() {
           },
         })
         
-        console.log(candidate_info) ; 
-        console.log(questions); 
-        console.log(interviewer_info) ; 
-        // Mock candidate data
-        const mockCandidate: Candidate = {
-          id: params.candidateId as string,
-          name: "Sarah Johnson",
-          email: "sarah.johnson@email.com",
-          phoneNo: "+1234567890",
-          experience: "6 years",
-          skills: ["React", "TypeScript", "Node.js", "GraphQL"],
-          currentCompany: "Tech Corp",
-          currentRole: "Frontend Developer",
-          expectedSalary: "$120,000",
-          noticePeriod: "2 weeks",
-          location: "San Francisco, CA",
-          status: "INTERVIEW_SCHEDULED" as any,
-          appliedAt: "2024-01-20T10:00:00Z",
-          updatedAt: "2024-01-20T10:00:00Z",
-          jobPostingId: params.id as string,
-          jobPosting: {} as any,
-          interviews: [],
-        }
-
-        // Mock questions
-        const mockQuestions: Question[] = [
-          {
-            id: "q1",
-            questionText: "Tell me about yourself and your experience with React.",
-            category: "Behavioral",
-            difficulty: "EASY" as any,
-            expectedAnswer: "Look for relevant experience, passion for technology, and communication skills.",
-            keywords: ["react", "experience", "background"],
-            maxDuration: 120,
-            order: 1,
-            isActive: true,
-            createdAt: "2024-01-15T10:00:00Z",
-            updatedAt: "2024-01-15T10:00:00Z",
-            jobPostingId: params.id as string,
-            jobPosting: {} as any,
-            responses: [],
-          },
-          {
-            id: "q2",
-            questionText: "What is the difference between let, const, and var in JavaScript?",
-            category: "Technical",
-            difficulty: "MEDIUM" as any,
-            expectedAnswer:
-              "let and const are block-scoped, while var is function-scoped. const cannot be reassigned after declaration.",
-            keywords: ["javascript", "variables", "scope"],
-            maxDuration: 180,
-            order: 2,
-            isActive: true,
-            createdAt: "2024-01-15T10:00:00Z",
-            updatedAt: "2024-01-15T10:00:00Z",
-            jobPostingId: params.id as string,
-            jobPosting: {} as any,
-            responses: [],
-          },
-          {
-            id: "q3",
-            questionText: "Describe a challenging project you worked on and how you overcame the difficulties.",
-            category: "Behavioral",
-            difficulty: "MEDIUM" as any,
-            expectedAnswer: "Look for problem-solving skills, teamwork, and learning from challenges.",
-            keywords: ["project", "challenges", "problem-solving"],
-            maxDuration: 240,
-            order: 3,
-            isActive: true,
-            createdAt: "2024-01-15T10:00:00Z",
-            updatedAt: "2024-01-15T10:00:00Z",
-            jobPostingId: params.id as string,
-            jobPosting: {} as any,
-            responses: [],
-          },
-        ]
+        
 
         setCandidate(candidate_info.data)
-        setQuestions(questions.data)
+        setQuestions(questions.data.questions)
+        setJob(job_info.data); 
+        setInterviewer(interviewer_info.data.recruiter) ; 
+        // console.log(candidate) ; 
         setInterview((prev) => ({
           ...prev,
-          timeRemaining: mockQuestions[0]?.maxDuration || 120,
+          //@ts-ignore
+          timeRemaining: questions[0]?.maxDuration || 120,
         }))
       } catch (error) {
         console.error("Failed to fetch interview data:", error)
@@ -156,7 +94,7 @@ export default function InterviewPage() {
     }
 
     fetchData()
-  }, [params.id, params.candidateId])
+  }, [params.id, params.candidateId ])
 
   useEffect(() => {
     let interval: NodeJS.Timeout
@@ -175,12 +113,48 @@ export default function InterviewPage() {
     return () => clearInterval(interval)
   }, [interview.status, interview.timeRemaining])
 
-  const startInterview = () => {
-    setInterview((prev) => ({
-      ...prev,
-      status: "in_progress",
-      timeRemaining: questions[0]?.maxDuration || 120,
-    }))
+  const startInterview = async() => {
+    setIsLoading(true) ; 
+    try{
+      const token = localStorage.getItem('token') ; 
+      const stringifiedQuestions = questions
+  .map(q => q.questionText)
+  .join(", ");
+
+      console.log(stringifiedQuestions)
+      const candidateId = params.candidateId ; 
+      const jobId = params.id ; 
+      const requestBody = {
+        "jobId" : jobId , 
+        "candidateId" : candidateId , 
+        "candidatePhone" :"+91" + candidate?.phoneNo , 
+        "candidateName" :  candidate?.name, 
+        //@ts-ignore
+        "jobTitle" : job?.title , 
+        //@ts-ignore
+        "recruiterName" : interviewer?.name , 
+        "questions" : "questions"
+      }
+      console.log(requestBody) ; 
+      const res = await axios.post(
+        "http://localhost:5000/interviews/conductInterview",
+        requestBody,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
+      console.log("Interview started:", res.data);
+
+    }catch(error){
+      console.error("Error starting interview:", error);
+    }
+
+    setIsLoading(false) ; 
+
   }
 
   const handleNextQuestion = () => {
@@ -318,8 +292,8 @@ export default function InterviewPage() {
         </CardHeader>
       </Card>
 
-      {/* Interview Status */}
-      {interview.status === "waiting" && (
+      {/* {Interview Status */}
+      {/* {interview.status === "waiting" && ( */}
         <Card>
           <CardContent className="p-12 text-center">
             <Phone className="h-16 w-16 text-primary mx-auto mb-6" />
@@ -334,9 +308,9 @@ export default function InterviewPage() {
             </Button>
           </CardContent>
         </Card>
-      )}
+      {/* // )} } */}
 
-      {/* Active Interview */}
+      {/* Active Interview
       {interview.status === "in_progress" && currentQuestion && (
         <Card>
           <CardHeader>
@@ -417,9 +391,9 @@ export default function InterviewPage() {
             </div>
           </CardContent>
         </Card>
-      )}
+      )} */}
 
-      {/* Interview Completed */}
+      {/* Interview Completed
       {interview.status === "completed" && (
         <Card>
           <CardContent className="p-12 text-center">
@@ -461,7 +435,7 @@ export default function InterviewPage() {
             </div>
           </CardContent>
         </Card>
-      )}
+      )} */}
 
       {/* Question List */}
       <Card>
