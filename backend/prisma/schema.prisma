@@ -103,7 +103,7 @@ model Question{
 
 model Interview{
   id                  String                  @id @default(cuid())
-  status              InterviewStatus         @default(SCHEDULED)
+  status              String                  @default("scheduled")
   scheduedAt          DateTime?
   startedAt           DateTime?
   completedAt         DateTime?
@@ -116,6 +116,7 @@ model Interview{
   feedback            String?               @db.Text
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
+  orationResponse     Json
 
   //Foreign Keys
 

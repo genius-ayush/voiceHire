@@ -5,7 +5,8 @@ const API_KEY = process.env.API_KEY;
 const WORKSPACE_ID = process.env.WORKSPACE_ID;
 const AGENT_ID = process.env.AGENT_ID;
 const ORATION_BASE_URL = 'https://www.oration.ai/api/v2';
-
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient() ; 
 
 const orationHeaders = {
     'x-api-key': API_KEY,
@@ -13,89 +14,7 @@ const orationHeaders = {
     'Content-Type': 'application/json'
   };
 
-export const conductInterview = async(req:Request , res : Response)=>{
 
-    const recruiterId = req.headers["recruiterId"];
-
-    if (typeof recruiterId !== "string") {
-        return res.status(400).json({ message: "Invalid recruiter ID" })
-    }
-
-    // const {jobId , candidateId} = req.body ; 
-    const {candidate_info , questions , interviewr_info , job_info} = req.body ;    
-    
-    const dynamicVariables = {
-
-        "candidate_info" : {
-            "name" : candidate_info.name , 
-            "email" : candidate_info.email , 
-            "phoneNumber" : candidate_info.phoneNumber , 
-            "experience" : candidate_info.experience , 
-            "skills" : candidate_info.skills
-        }  , 
-        "job_info" : {
-            "title" : job_info.title  , 
-            "jobDescription" : job_info.description
-        } , 
-        "questions":questions  , 
-        "interviewr_info" : {
-            "name" : interviewr_info.name , 
-
-        } ,
-    }
-
-    console.log("agentId" , AGENT_ID) ; 
-    console.log("apikey" , API_KEY) ; 
-    console.log("workspaceId" , WORKSPACE_ID)
-    // console.log(candidate_info)
-    // console.log(questions) ; 
-    // console.log(interviewr_info) ; 
-    // console.log(job_info) ; 
-    // console.log(typeof(candidate_info.phoneNo))
-    const url = "https://www.oration.ai/api/v2/conversations";
-
-    const data = {
-        conversations: [
-          {
-            agentId: AGENT_ID,
-            conversationType: "telephony",
-            toPhoneNumber: candidate_info.phoneNumber,
-            dynamicVariables: ""
-          }
-        ]
-      };
-
-          const headers = {
-            "x-api-key": API_KEY,
-            "x-workspace-id": WORKSPACE_ID,
-            "Content-Type": "application/json"
-          };
-
-    try{
-        
-        const response = await axios.post(url, data, { headers });
-    console.log("✅ Call triggered successfully:");
-    console.log(JSON.stringify(response.data, null, 2));
-
-    }catch (error) {
-        console.error("❌ Failed to trigger call:" , error);
-        //@ts-ignore
-        if (error.response) {
-            //@ts-ignore
-          console.error(error.response.data);
-        } else {
-            //@ts-ignore
-          console.error(error.message);
-        }
-      }
-    //conducting interview based on that info
-
-    // orationai... 
-
-    // save the result ; 
-
-
-}
 
 export const conduct_interview = async(req: Request , res : Response)=>{
 
@@ -111,8 +30,6 @@ export const conduct_interview = async(req: Request , res : Response)=>{
             recruiterName , 
             companyName 
         } = req.body ; 
-
-        console.log(candidatePhone)  ;
 
         if (!jobId || !candidateId || !candidatePhone || !candidateName || !questions) {
             return res.status(400).json({
@@ -147,27 +64,27 @@ export const conduct_interview = async(req: Request , res : Response)=>{
 
           if (response.data.results && response.data.results.length > 0) {
             const conversation = response.data.results[0];
-            
+            console.log(conversation)
             // Save interview record to your database
-            const interviewRecord = {
-              jobId,
-              candidateId,
-              conversationId: conversation.id,
-              candidateName,
-              candidatePhone,
-              status: 'initiated',
-              startTime: new Date(),
-              questions: questions , 
-              orationResponse: conversation
-            };
+            const interview = await prisma.interview.create({
+              data:{
+                id: conversation.conversation.id , 
+                jobPostingId : jobId , 
+                candidateId , 
+                status : 'SCHEDULED' , 
+                scheduedAt: new Date() , 
+                orationResponse : conversation
+              }
+            })
 
-            console.log(conversation.conversation.id) ; 
+            
+
             return res.status(200).json({
                 success: true,
                 message: 'Interview initiated successfully',
                 data: {
                   interviewId: conversation.id,
-                  conversationId: conversation.id,
+                  conversationId: conversation.conversation.id,
                   status: conversation.conversationStatus,
                   candidateName,
                   candidatePhone,
@@ -190,62 +107,84 @@ export const conduct_interview = async(req: Request , res : Response)=>{
     }
 }
 
-export const interview_status = async(req:Request , res: Response)=>{
-   try{
-    const { conversationId } = req.params;
 
-    if (!conversationId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Conversation ID is required'
-      });
+export const get_interview_status = async(req : Request , res : Response)=>{
+  try{
+    const{interviewId} = req.params; 
+    console.log(interviewId) ; 
+    const interview = await prisma.interview.findUnique({
+      where:{id: interviewId}
+    })
+    // console.log(interview) ; 
+    if (!interview) {
+      return res.status(404).json({ success: false, message: 'Interview not found' });
     }
 
     const response = await axios.get(
-      `${ORATION_BASE_URL}/conversations/${conversationId}`,
+      `${ORATION_BASE_URL}/conversations/${interviewId}`,
       { headers: orationHeaders }
     );
-    const conversation = response.data;
 
-    const interviewStatus = {
-      conversationId: conversation.id,
-      status: conversation.conversationStatus,
-      telephonyStatus: conversation.telephonyStatus,
-      startTime: conversation.callStartTime,
-      endTime: conversation.callEndTime,
-      userJoinTime: conversation.userJoinTime,
-      userLeaveTime: conversation.userLeaveTime,
-      endReason: conversation.endReason,
-      duration: conversation.callEndTime && conversation.callStartTime 
-      //@ts-ignore
-        ? Math.round((new Date(conversation.callEndTime) - new Date(conversation.callStartTime)) / 1000)
-        : null,
-      summary: conversation.summary,
-      recordingStatus: conversation.recordingStatus
-    };
-
-    return res.status(200).json({
-      success: true,
-      data: interviewStatus
+    const updatedStatus = response.data?.conversationStatus || interview.status;
+    console.log(updatedStatus) ; 
+    await prisma.interview.update({
+      where: { id: interviewId },
+      data: {
+        status: updatedStatus,
+        startedAt: response.data.callStartTime ? new Date(response.data.callStartTime) : interview.startedAt,
+        completedAt: response.data.callEndTime ? new Date(response.data.callEndTime) : interview.completedAt,
+        calRecordingUrl: response.data.callRecordingUrl || interview.calRecordingUrl,
+        orationResponse: response.data
+      }
     });
 
-   }catch(error){
-    //@ts-ignore
-    console.error('Error getting interview status:', error.response?.data || error.message);
     
-    //@ts-ignore
-    if (error.response?.status === 404) {
-      return res.status(404).json({
-        success: false,
-        message: 'Interview not found'
+    return res.json({
+      success: true,
+      data: { ...interview, status: updatedStatus }
+    });
+    
+  }catch(err){
+    console.error('Error getting interview status' , err); 
+
+    return res.status(500).json({
+      success : false , 
+      message:'Failed to fetch interview status', 
+      error : err
+    })
+  }
+}
+
+export const finalize_interview = async(req:Request , res:Response)=>{
+
+  try{
+
+    const { interviewId, results } = req.body;
+    for (const r of results) {
+      await prisma.interviewResponse.create({
+        data: {
+          interviewId,
+          questionId: r.questionId,
+          answer: r.answer,
+          duration: r.duration,
+          score: r.score,
+          overallRating: r.rating,
+          feedback: r.feedback,
+          keywords: r.keywords,
+          sentiment: r.sentiment,
+          confidence: r.confidence
+        }
       });
     }
 
+    
+
+  }catch (error) {
+    console.error('Error finalizing interview:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to get interview status',
-      //@ts-ignore
-      error: error.response?.data || error.message
+      message: 'Failed to finalize interview',
+      error: error
     });
-   }
+  }
 }
