@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.get_interview_status = exports.conduct_interview = void 0;
+exports.finalize_interview = exports.get_interview_status = exports.conduct_interview = void 0;
 const axios_1 = __importDefault(require("axios"));
 require('dotenv').config();
 const API_KEY = process.env.API_KEY;
@@ -95,58 +95,6 @@ const conduct_interview = (req, res) => __awaiter(void 0, void 0, void 0, functi
     }
 });
 exports.conduct_interview = conduct_interview;
-// export const interview_status = async(req:Request , res: Response)=>{
-//    try{
-//     const { conversationId } = req.params;
-//     if (!conversationId) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Conversation ID is required'
-//       });
-//     }
-//     const response = await axios.get(
-//       `${ORATION_BASE_URL}/conversations/${conversationId}`,
-//       { headers: orationHeaders }
-//     );
-//     const conversation = response.data;
-//     const interviewStatus = {
-//       conversationId: conversation.id,
-//       status: conversation.conversationStatus,
-//       telephonyStatus: conversation.telephonyStatus,
-//       startTime: conversation.callStartTime,
-//       endTime: conversation.callEndTime,
-//       userJoinTime: conversation.userJoinTime,
-//       userLeaveTime: conversation.userLeaveTime,
-//       endReason: conversation.endReason,
-//       duration: conversation.callEndTime && conversation.callStartTime 
-//       //@ts-ignore
-//         ? Math.round((new Date(conversation.callEndTime) - new Date(conversation.callStartTime)) / 1000)
-//         : null,
-//       summary: conversation.summary,
-//       recordingStatus: conversation.recordingStatus
-//     };
-//     return res.status(200).json({
-//       success: true,
-//       data: interviewStatus
-//     });
-//    }catch(error){
-//     //@ts-ignore
-//     console.error('Error getting interview status:', error.response?.data || error.message);
-//     //@ts-ignore
-//     if (error.response?.status === 404) {
-//       return res.status(404).json({
-//         success: false,
-//         message: 'Interview not found'
-//       });
-//     }
-//     return res.status(500).json({
-//       success: false,
-//       message: 'Failed to get interview status',
-//       //@ts-ignore
-//       error: error.response?.data || error.message
-//     });
-//    }
-// }
 const get_interview_status = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _c;
     try {
@@ -187,3 +135,33 @@ const get_interview_status = (req, res) => __awaiter(void 0, void 0, void 0, fun
     }
 });
 exports.get_interview_status = get_interview_status;
+const finalize_interview = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { interviewId, results } = req.body;
+        for (const r of results) {
+            yield prisma.interviewResponse.create({
+                data: {
+                    interviewId,
+                    questionId: r.questionId,
+                    answer: r.answer,
+                    duration: r.duration,
+                    score: r.score,
+                    overallRating: r.rating,
+                    feedback: r.feedback,
+                    keywords: r.keywords,
+                    sentiment: r.sentiment,
+                    confidence: r.confidence
+                }
+            });
+        }
+    }
+    catch (error) {
+        console.error('Error finalizing interview:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to finalize interview',
+            error: error
+        });
+    }
+});
+exports.finalize_interview = finalize_interview;
